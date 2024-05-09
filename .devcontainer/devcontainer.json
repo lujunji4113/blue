@@ -1,0 +1,11 @@
+{
+	"name": "Node.js & TypeScript",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/desktop-lite:1": {},
+		"./features/deno": {},
+		"./features/meilisearch": {}
+	}
+}
