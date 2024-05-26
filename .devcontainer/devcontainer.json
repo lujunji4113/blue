@@ -1,11 +1,19 @@
 {
 	"name": "Node.js & TypeScript",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
 	"features": {
-		"ghcr.io/devcontainers/features/desktop-lite:1": {},
-		"./features/deno": {},
-		"./features/meilisearch": {}
+		"ghcr.io/devcontainers/features/desktop-lite": {},
+		"ghcr.io/lujunji4113/features/deno": {},
+		"ghcr.io/lujunji4113/features/bun": {},
+		"./features/meilisearch": {},
+		"ghcr.io/lujunji4113/features/chromium": {}
+	},
+	"forwardPorts": [
+		6080
+	],
+	"portsAttributes": {
+		"6080": {
+			"label": "desktop"
+		}
 	}
 }

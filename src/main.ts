@@ -1,7 +1,7 @@
 import { fromFileUrl } from "std/path/mod.ts";
+import { launch } from "npm:puppeteer@20.0.0";
 import { MeiliSearch } from "npm:meilisearch@0.38.0";
 import bookmarks from "../data/bookmarks.json" with { type: "json" };
-import frontend from "../data/frontend.json" with { type: "json" };
 
 const MASTER_KEY = "aSampleMasterKey";
 
@@ -51,14 +51,20 @@ const startMeilisearchClient = (): MeiliSearch => {
 };
 
 const main = async () => {
+  const browser = await launch({
+    headless: true,
+    executablePath: "/usr/bin/chromium",
+  });
+
+  await browser.close();
+
+  return;
+
   const meilisearchBackend = await startMeilisearchBackend();
 
   const meilisearchClient = startMeilisearchClient();
 
   meilisearchClient.index("bookmarks").addDocuments(bookmarks)
-    .then((res) => console.log(res));
-
-  meilisearchClient.index("frontend").addDocuments(frontend)
     .then((res) => console.log(res));
 };
 

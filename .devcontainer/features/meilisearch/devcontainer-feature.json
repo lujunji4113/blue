@@ -1,8 +1,0 @@
-{
-  "id": "meilisearch",
-  "version": "1.0.0",
-  "name": "Install meilisearch.",
-  "installsAfter": [
-    "ghcr.io/devcontainers/features/common-utils"
-  ]
-}

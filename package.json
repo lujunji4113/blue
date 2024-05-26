@@ -1,12 +1,18 @@
 {
   "name": "blue",
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
-  "license": "MIT",
   "dependencies": {
-    "meilisearch": "^0.38.0"
+    "cheerio": "1.0.0-rc.12",
+    "meilisearch": "^0.40.0",
+    "nanoid": "^5.0.7",
+    "puppeteer": "^22.10.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
   }
 }
