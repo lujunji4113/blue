@@ -28,8 +28,11 @@ interface WeeklyItem {
 
 interface WeeklyDocument {
   id: string;
+  number: string;
   title: string;
   url: string;
+  publishDate: string;
+  publishTimestamp: number;
 }
 
 interface Config {
@@ -85,6 +88,9 @@ const parseWeeklyItem = async (
 
   const documents: WeeklyDocument[] = [];
 
+  const publishDate = $("#publish_time").text();
+  const publishTimestamp = new Date(publishDate).getTime();
+
   for (const section of $("#js_content section")) {
     const $section = $(section);
 
@@ -116,8 +122,11 @@ const parseWeeklyItem = async (
       if (title.length > 0 && url.startsWith("https://")) {
         documents.push({
           id: parseId(item.numberStr, url),
+          number: item.numberStr,
           title,
           url,
+          publishDate,
+          publishTimestamp,
         });
       }
     }
@@ -292,7 +301,9 @@ const updateWeeklyIndexes = async (
     }
 
     count++;
-    console.log(`Progress: ${((count / items.length) * 100).toFixed(2)}%`);
+    console.log(
+      `${weekly.title} Progress: ${((count / items.length) * 100).toFixed(2)}%`
+    );
   }
 
   await page.close();
@@ -306,24 +317,40 @@ const main = async () => {
     executablePath: "/usr/bin/chromium",
   });
 
-  const isUpdate = cmdArgs.includes("--update");
-  if (isUpdate) {
-    const configProvider = new ConfigProvider();
-    const weeklies = await configProvider.weeklies();
+  const configProvider = new ConfigProvider();
+  const weeklies = await configProvider.weeklies();
 
-    const { MEILI_HOST, MEILI_API_KEY } = process.env;
+  const { MEILI_HOST, MEILI_API_KEY } = process.env;
 
-    if (!MEILI_HOST || !MEILI_API_KEY) {
-      throw new Error("We need meilisearch.");
+  if (!MEILI_HOST || !MEILI_API_KEY) {
+    throw new Error("We need meilisearch.");
+  }
+
+  const client = new MeiliSearch({
+    host: MEILI_HOST,
+    apiKey: MEILI_API_KEY,
+  });
+
+  if (cmdArgs.includes("--update-documents")) {
+    for await (const weekly of weeklies) {
+      await updateWeeklyIndexes(browser, client, weekly);
     }
-
-    const client = new MeiliSearch({
-      host: MEILI_HOST,
-      apiKey: MEILI_API_KEY,
-    });
-
+  } else if (cmdArgs.includes("--update-settings")) {
     await Promise.all(
-      weeklies.map((weekly) => updateWeeklyIndexes(browser, client, weekly))
+      weeklies.map(async (weekly) => {
+        await client
+          .index(weekly.indexUid)
+          .updateDisplayedAttributes(["number", "title", "url", "publishDate"]);
+        await client
+          .index(weekly.indexUid)
+          .updateSearchableAttributes(["title"]);
+        await client
+          .index(weekly.indexUid)
+          .updateSortableAttributes(["publishTimestamp"]);
+        await client
+          .index(weekly.indexUid)
+          .updateRankingRules(["publishTimestamp:desc"]);
+      })
     );
   }
 
