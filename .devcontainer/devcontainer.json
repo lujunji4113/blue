@@ -5,7 +5,6 @@
 		"ghcr.io/devcontainers/features/desktop-lite": {},
 		"ghcr.io/lujunji4113/features/deno": {},
 		"ghcr.io/lujunji4113/features/bun": {},
-		"./features/meilisearch": {},
 		"ghcr.io/lujunji4113/features/chromium": {}
 	},
 	"forwardPorts": [
