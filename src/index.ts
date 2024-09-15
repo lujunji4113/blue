@@ -2,9 +2,9 @@ import puppeteerVanilla, { Browser } from "puppeteer";
 import { addExtra } from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { load } from "cheerio";
-import { MeiliSearch, TaskStatus, TaskTypes } from "meilisearch";
+import { MeiliSearch, TaskStatus } from "meilisearch";
 import { join } from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath as fromFileUrl } from "node:url";
 import { steps } from "./utils";
 
@@ -64,10 +64,24 @@ class ConfigProvider {
     }
   }
 
+  async write(config: Config): Promise<void> {
+    await writeFile(
+      ConfigProvider.configFilePath,
+      JSON.stringify(config, null, 2),
+      "utf-8"
+    );
+  }
+
   async weeklies(): Promise<Weekly[]> {
     const config = await this.read();
 
     return config?.weeklies ?? [];
+  }
+
+  async updateWeeklies(weeklies: Weekly[]): Promise<void> {
+    const config = await this.read();
+
+    await this.write({ ...config, weeklies });
   }
 }
 
@@ -82,6 +96,15 @@ const parseWeeklyItem = async (
     timeout: 3000,
   });
 
+  await page.waitForFunction(
+    () => {
+      return document.querySelector("#publish_time")?.textContent !== "";
+    },
+    {
+      timeout: 3000,
+    }
+  );
+
   const html = await page.evaluate(() => document.body.innerHTML);
 
   const $ = load(html);
@@ -89,7 +112,9 @@ const parseWeeklyItem = async (
   const documents: WeeklyDocument[] = [];
 
   const publishDate = $("#publish_time").text();
-  const publishTimestamp = new Date(publishDate).getTime();
+  const publishTimestamp = new Date(
+    publishDate.replace(/年|月/g, "-").replace(/日 /g, "T")
+  ).getTime();
 
   for (const section of $("#js_content section")) {
     const $section = $(section);
@@ -141,7 +166,7 @@ const updateWeeklyIndexes = async (
   browser: Browser,
   client: MeiliSearch,
   weekly: Weekly
-) => {
+): Promise<Weekly> => {
   const page = await browser.newPage();
 
   await page.goto(weekly.url);
@@ -307,6 +332,8 @@ const updateWeeklyIndexes = async (
   }
 
   await page.close();
+
+  return { ...weekly, currentNumber: newestNumber };
 };
 
 const main = async () => {
@@ -332,9 +359,13 @@ const main = async () => {
   });
 
   if (cmdArgs.includes("--update-documents")) {
+    const updatedWeeklies: Weekly[] = [];
     for await (const weekly of weeklies) {
-      await updateWeeklyIndexes(browser, client, weekly);
+      const updatedWeekly = await updateWeeklyIndexes(browser, client, weekly);
+      updatedWeeklies.push(updatedWeekly);
     }
+
+    await configProvider.updateWeeklies(updatedWeeklies);
   } else if (cmdArgs.includes("--update-settings")) {
     await Promise.all(
       weeklies.map(async (weekly) => {
